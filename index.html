@@ -1,33 +1,54 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Сканер</title>
+  <title>Автосканер</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
+    body { font-family: sans-serif; text-align: center; margin-top: 2em; }
+    video { width: 90%; max-width: 400px; border: 1px solid #ccc; border-radius: 8px; }
+  </style>
 </head>
 <body>
-  <h2>Сканируйте документ</h2>
-  <input type="file" accept="image/*" capture="environment" id="camera">
-  <br><br>
-  <button onclick="sendPhoto()">Отправить</button>
+  <h2>📷 Сканируем...</h2>
+  <video id="video" autoplay playsinline></video>
+  <canvas id="canvas" style="display: none;"></canvas>
 
   <script>
     const tg = window.Telegram.WebApp;
+    const video = document.getElementById("video");
+    const canvas = document.getElementById("canvas");
+    const context = canvas.getContext("2d");
 
-    function sendPhoto() {
-      const input = document.getElementById("camera");
-      if (input.files.length === 0) return alert("Выберите файл");
+    async function startCamera() {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+        video.srcObject = stream;
 
-      const file = input.files[0];
-      const reader = new FileReader();
-      reader.onload = function () {
-        const base64 = reader.result;
-        tg.sendData(base64);
-        tg.close();
-      };
-      reader.readAsDataURL(file);
+        // Дождёмся запуска камеры
+        video.onloadedmetadata = () => {
+          setTimeout(() => {
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+            // Останавливаем камеру
+            stream.getTracks().forEach(track => track.stop());
+
+            // Отправляем снимок
+            const imageData = canvas.toDataURL("image/jpeg");
+            tg.sendData(imageData);
+            tg.close();
+          }, 1500); // Подождём 1.5 секунды перед автофото
+        };
+      } catch (err) {
+        document.body.innerHTML = "<p>❌ Не удалось открыть камеру.</p>";
+        console.error(err);
+      }
     }
 
     tg.expand();
+    startCamera();
   </script>
 </body>
 </html>
