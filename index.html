@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Сканер</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+</head>
+<body>
+  <h2>Сканируйте документ</h2>
+  <input type="file" accept="image/*" capture="environment" id="camera">
+  <br><br>
+  <button onclick="sendPhoto()">Отправить</button>
+
+  <script>
+    const tg = window.Telegram.WebApp;
+
+    function sendPhoto() {
+      const input = document.getElementById("camera");
+      if (input.files.length === 0) return alert("Выберите файл");
+
+      const file = input.files[0];
+      const reader = new FileReader();
+      reader.onload = function () {
+        const base64 = reader.result;
+        tg.sendData(base64);
+        tg.close();
+      };
+      reader.readAsDataURL(file);
+    }
+
+    tg.expand();
+  </script>
+</body>
+</html>
