@@ -1,48 +1,56 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Автосканер</title>
+  <title>Сканер</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <style>
-    body { font-family: sans-serif; text-align: center; margin-top: 2em; }
-    video { width: 90%; max-width: 400px; border: 1px solid #ccc; border-radius: 8px; }
+    video {
+      width: 100%;
+      max-width: 400px;
+      border-radius: 12px;
+      border: 2px solid #ccc;
+      margin-top: 20px;
+    }
+    body {
+      text-align: center;
+      font-family: sans-serif;
+      margin: 0;
+      padding: 20px;
+    }
   </style>
 </head>
 <body>
-  <h2>📷 Сканируем...</h2>
+  <h2>📷 Сканирование...</h2>
   <video id="video" autoplay playsinline></video>
   <canvas id="canvas" style="display: none;"></canvas>
 
   <script>
     const tg = window.Telegram.WebApp;
-    const video = document.getElementById("video");
-    const canvas = document.getElementById("canvas");
-    const context = canvas.getContext("2d");
+    const video = document.getElementById('video');
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
 
     async function startCamera() {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
         video.srcObject = stream;
 
-        // Дождёмся запуска камеры
         video.onloadedmetadata = () => {
           setTimeout(() => {
             canvas.width = video.videoWidth;
             canvas.height = video.videoHeight;
-            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-            // Останавливаем камеру
             stream.getTracks().forEach(track => track.stop());
 
-            // Отправляем снимок
             const imageData = canvas.toDataURL("image/jpeg");
             tg.sendData(imageData);
             tg.close();
-          }, 1500); // Подождём 1.5 секунды перед автофото
+          }, 1500); // Делаем фото через 1.5 секунды
         };
       } catch (err) {
-        document.body.innerHTML = "<p>❌ Не удалось открыть камеру.</p>";
+        document.body.innerHTML = '<p>❌ Ошибка открытия камеры</p>';
         console.error(err);
       }
     }
